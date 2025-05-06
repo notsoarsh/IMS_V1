@@ -1,64 +1,56 @@
 package src;
 
 import java.util.Scanner;
-import src.command.*;
 
+/**
+ * Command Line Interface for the Inventory Management System
+ * Handles user interaction and menu display
+ */
 public class CLI {
 
     private InventoryManager manager;
     private Scanner scanner;
-    private CommandManager commandManager;
 
-    // Constructor
+    /**
+     * Constructor initializes the inventory manager and scanner
+     */
     public CLI() {
         manager = new InventoryManager();
         scanner = new Scanner(System.in);
-        commandManager = new CommandManager();
     }
 
-    // Main method - kept for backward compatibility
+    /**
+     * Main method - kept for backward compatibility
+     */
     public static void main(String[] args) {
         CLI app = new CLI();
         app.showMenu();
     }
 
-    // Show menu and handle user choices
+    /**
+     * Shows the main menu and handles user choices
+     */
     public void showMenu() {
         int choice;
         do {
             displayMenu();
-            choice = getValidIntInput("Enter your choice: ", 0, 10);
+            choice = getValidIntInput("Enter your choice: ", 0, 5);
 
             switch (choice) {
                 case 1:
-                    addItem();
+                    createItem();
                     break;
                 case 2:
-                    viewItem();
-                    break;
-                case 3:
                     updateItem();
                     break;
-                case 4:
+                case 3:
                     deleteItem();
+                    break;
+                case 4:
+                    readItem();
                     break;
                 case 5:
                     manager.viewAllItems();
-                    break;
-                case 6:
-                    saveToFile();
-                    break;
-                case 7:
-                    loadFromFile();
-                    break;
-                case 8:
-                    showLowStockItems();
-                    break;
-                case 9:
-                    undoOperation();
-                    break;
-                case 10:
-                    redoOperation();
                     break;
                 case 0:
                     System.out.println("Exiting the program...");
@@ -69,23 +61,26 @@ public class CLI {
         } while (choice != 0);
     }
     
-    // Display the menu options
+    /**
+     * Displays the menu options
+     */
     private void displayMenu() {
         System.out.println("\n--- Inventory Management System ---");
-        System.out.println("1. Add Item");
-        System.out.println("2. View Item");
-        System.out.println("3. Update Item");
-        System.out.println("4. Delete Item");
+        System.out.println("1. Create Item");
+        System.out.println("2. Update Item");
+        System.out.println("3. Delete Item");
+        System.out.println("4. Read Item");
         System.out.println("5. View All Items");
-        System.out.println("6. Save to File");
-        System.out.println("7. Load from File");
-        System.out.println("8. Show Low Stock Items");
-        System.out.println("9. Undo Last Operation");
-        System.out.println("10. Redo Last Operation");
         System.out.println("0. Exit");
     }
 
-    // Get valid integer input within a range
+    /**
+     * Gets valid integer input within a range
+     * @param prompt The prompt to display
+     * @param min The minimum valid value
+     * @param max The maximum valid value
+     * @return The validated input
+     */
     private int getValidIntInput(String prompt, int min, int max) {
         int input = -1;
         boolean validInput = false;
@@ -109,7 +104,11 @@ public class CLI {
         return input;
     }
     
-    // Get valid double input
+    /**
+     * Gets valid double input
+     * @param prompt The prompt to display
+     * @return The validated input
+     */
     private double getValidDoubleInput(String prompt) {
         double input = 0;
         boolean validInput = false;
@@ -128,55 +127,86 @@ public class CLI {
         return input;
     }
 
-    // Add a new item
-    public void addItem() {
-        System.out.print("Enter Item ID: ");
-        String id = scanner.nextLine().trim();
+    /**
+     * Gets valid non-empty string input
+     * @param prompt The prompt to display
+     * @return The validated input
+     */
+    private String getValidStringInput(String prompt) {
+        String input = "";
+        boolean validInput = false;
+        
+        while (!validInput) {
+            System.out.print(prompt);
+            input = scanner.nextLine().trim();
+            if (!input.isEmpty()) {
+                validInput = true;
+            } else {
+                System.out.println("Input cannot be empty. Please enter a valid value.");
+            }
+        }
+        
+        return input;
+    }
+
+    /**
+     * Creates a new inventory item
+     */
+    public void createItem() {
+        int id = getValidIntInput("Enter Item ID: ", 1, Integer.MAX_VALUE);
         
         // Check if ID already exists
-        if (manager.viewItem(id) != null) {
+        if (manager.readItem(id) != null) {
             System.out.println("An item with this ID already exists. Use update option to modify it.");
             return;
         }
         
-        System.out.print("Enter Item Name: ");
-        String name = scanner.nextLine().trim();
-        
-        System.out.print("Enter Category: ");
-        String category = scanner.nextLine().trim();
-        
+        String name = getValidStringInput("Enter Item Name: ");
+        String category = getValidStringInput("Enter Category: ");
         int quantity = getValidIntInput("Enter Quantity: ", 0, Integer.MAX_VALUE);
         double price = getValidDoubleInput("Enter Price: ");
         
-        System.out.print("Enter Supplier: ");
-        String supplier = scanner.nextLine().trim();
+        // Validate price is positive
+        while (price < 0) {
+            System.out.println("Price cannot be negative. Please enter a valid price.");
+            price = getValidDoubleInput("Enter Price: ");
+        }
+        
+        String supplier = getValidStringInput("Enter Supplier: ");
 
         InventoryItem item = new InventoryItem(id, name, category, quantity, price, supplier);
+        manager.createItem(item);
         
-        // Use command pattern for add operation
-        Command addCommand = new AddItemCommand(manager, item);
-        commandManager.executeCommand(addCommand);
-        
-        System.out.println("Item added successfully!");
+        System.out.println("Item created and saved successfully!");
     }
 
-    // View an item
-    public void viewItem() {
-        System.out.print("Enter Item ID to view: ");
-        String id = scanner.nextLine().trim();
-        InventoryItem item = manager.viewItem(id);
+    /**
+     * Reads and displays an item by ID
+     */
+    public void readItem() {
+        int id = getValidIntInput("Enter Item ID to view: ", 1, Integer.MAX_VALUE);
+        InventoryItem item = manager.readItem(id);
+        
         if (item != null) {
-            System.out.println(item);
+            System.out.println("\n----- Item Details -----");
+            System.out.println("ID: " + item.getItemId());
+            System.out.println("Name: " + item.getName());
+            System.out.println("Category: " + item.getCategory());
+            System.out.println("Quantity: " + item.getQuantity());
+            System.out.println("Price: $" + item.getPrice());
+            System.out.println("Supplier: " + item.getSupplier());
+            System.out.println("------------------------");
         } else {
             System.out.println("Item not found.");
         }
     }
 
-    // Update an item
+    /**
+     * Updates an existing item
+     */
     public void updateItem() {
-        System.out.print("Enter Item ID to update: ");
-        String id = scanner.nextLine().trim();
-        InventoryItem existingItem = manager.viewItem(id);
+        int id = getValidIntInput("Enter Item ID to update: ", 1, Integer.MAX_VALUE);
+        InventoryItem existingItem = manager.readItem(id);
         
         if (existingItem != null) {
             System.out.println("Current item details: " + existingItem);
@@ -194,7 +224,15 @@ public class CLI {
             try {
                 System.out.print("Enter New Quantity [" + existingItem.getQuantity() + "]: ");
                 String quantityInput = scanner.nextLine().trim();
-                quantity = quantityInput.isEmpty() ? existingItem.getQuantity() : Integer.parseInt(quantityInput);
+                if (quantityInput.isEmpty()) {
+                    quantity = existingItem.getQuantity();
+                } else {
+                    quantity = Integer.parseInt(quantityInput);
+                    if (quantity < 0) {
+                        System.out.println("Quantity cannot be negative. Keeping current value.");
+                        quantity = existingItem.getQuantity();
+                    }
+                }
             } catch (NumberFormatException e) {
                 System.out.println("Invalid quantity. Keeping current value.");
                 quantity = existingItem.getQuantity();
@@ -204,7 +242,15 @@ public class CLI {
             try {
                 System.out.print("Enter New Price [" + existingItem.getPrice() + "]: ");
                 String priceInput = scanner.nextLine().trim();
-                price = priceInput.isEmpty() ? existingItem.getPrice() : Double.parseDouble(priceInput);
+                if (priceInput.isEmpty()) {
+                    price = existingItem.getPrice();
+                } else {
+                    price = Double.parseDouble(priceInput);
+                    if (price < 0) {
+                        System.out.println("Price cannot be negative. Keeping current value.");
+                        price = existingItem.getPrice();
+                    }
+                }
             } catch (NumberFormatException e) {
                 System.out.println("Invalid price. Keeping current value.");
                 price = existingItem.getPrice();
@@ -216,91 +262,40 @@ public class CLI {
 
             InventoryItem updatedItem = new InventoryItem(id, name, category, quantity, price, supplier);
             
-            // Use command pattern for update operation  quantity, price, supplier);
-            
-            // Use command pattern for update operation
-            Command updateCommand = new UpdateItemCommand(manager, id, updatedItem);
-            commandManager.executeCommand(updateCommand);
-
-            System.out.println("Item updated successfully.");
-        } else {
-            System.out.println("Item not found.");
-        }
-    }
-
-    // Delete an item
-    public void deleteItem() {
-        System.out.print("Enter Item ID to delete: ");
-        String id = scanner.nextLine().trim();
-        
-        InventoryItem item = manager.viewItem(id);
-        if (item != null) {
-            System.out.println("You are about to delete: " + item);
-            System.out.print("Are you sure? (y/n): ");
-            String confirmation = scanner.nextLine().trim().toLowerCase();
-            
-            if (confirmation.equals("y") || confirmation.equals("yes")) {
-                // Use command pattern for delete operation
-                Command deleteCommand = new DeleteItemCommand(manager, id);
-                commandManager.executeCommand(deleteCommand);
-                System.out.println("Item deleted successfully.");
+            if (manager.updateItem(id, updatedItem)) {
+                System.out.println("Item updated successfully.");
             } else {
-                System.out.println("Deletion cancelled.");
+                System.out.println("Failed to update item.");
             }
         } else {
             System.out.println("Item not found.");
         }
     }
 
-    // Save items to file
-    public void saveToFile() {
-        System.out.print("Enter filename to save (without extension): ");
-        String filename = scanner.nextLine().trim();
+    /**
+     * Deletes an item by ID
+     */
+    public void deleteItem() {
+        int id = getValidIntInput("Enter Item ID to delete: ", 1, Integer.MAX_VALUE);
         
-        // Add .dat extension if not provided
-        if (!filename.endsWith(".dat")) {
-            filename += ".dat";
-        }
-        
-        manager.saveToFile(filename);
-    }
-
-    // Load items from file
-    public void loadFromFile() {
-        System.out.print("Enter filename to load (without extension): ");
-        String filename = scanner.nextLine().trim();
-        
-        // Add .dat extension if not provided
-        if (!filename.endsWith(".dat")) {
-            filename += ".dat";
-        }
-        
-        manager.loadFromFile(filename);
-    }
-    
-    // Show low stock items
-    public void showLowStockItems() {
-        int threshold = getValidIntInput("Enter stock threshold: ", 0, Integer.MAX_VALUE);
-        manager.viewLowStockItems(threshold);
-    }
-    
-    // Undo last operation
-    public void undoOperation() {
-        if (commandManager.canUndo()) {
-            commandManager.undo();
-            System.out.println("Last operation undone successfully.");
+        InventoryItem item = manager.readItem(id);
+        if (item != null) {
+            System.out.println("You are about to delete: " + item);
+            System.out.println("WARNING: This action cannot be undone!");
+            System.out.print("Are you sure? (y/n): ");
+            String confirmation = scanner.nextLine().trim().toLowerCase();
+            
+            if (confirmation.equals("y") || confirmation.equals("yes")) {
+                if (manager.deleteItem(id)) {
+                    System.out.println("Item deleted successfully.");
+                } else {
+                    System.out.println("Failed to delete item.");
+                }
+            } else {
+                System.out.println("Deletion cancelled.");
+            }
         } else {
-            System.out.println("Nothing to undo.");
-        }
-    }
-    
-    // Redo last undone operation
-    public void redoOperation() {
-        if (commandManager.canRedo()) {
-            commandManager.redo();
-            System.out.println("Operation redone successfully.");
-        } else {
-            System.out.println("Nothing to redo.");
+            System.out.println("Item not found.");
         }
     }
 }
