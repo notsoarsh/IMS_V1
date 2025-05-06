@@ -2,18 +2,31 @@ package src;
 
 import java.io.Serializable;
 
+/**
+ * Represents an item in the inventory
+ * Contains all the attributes and methods for an inventory item
+ */
 public class InventoryItem implements Serializable {
     private static final long serialVersionUID = 1L;
+    
     // Attributes of the item
-    private String itemId;
+    private int itemId;
     private String name;
     private String category;
     private int quantity;
     private double price;
     private String supplier;
 
-    
-    public InventoryItem(String itemId, String name, String category, int quantity, double price, String supplier) {
+    /**
+     * Constructor to create a new inventory item
+     * @param itemId Unique identifier for the item
+     * @param name Name of the item
+     * @param category Category the item belongs to
+     * @param quantity Quantity in stock
+     * @param price Price of the item
+     * @param supplier Supplier of the item
+     */
+    public InventoryItem(int itemId, String name, String category, int quantity, double price, String supplier) {
         this.itemId = itemId;
         this.name = name;
         this.category = category;
@@ -23,11 +36,11 @@ public class InventoryItem implements Serializable {
     }
 
     // Getter and Setter methods for each attribute
-    public String getItemId() {
+    public int getItemId() {
         return itemId;
     }
 
-    public void setItemId(String itemId) {
+    public void setItemId(int itemId) {
         this.itemId = itemId;
     }
 
@@ -71,7 +84,9 @@ public class InventoryItem implements Serializable {
         this.supplier = supplier;
     }
 
-    // Method to return a string representation of the object (toString)
+    /**
+     * Returns a string representation of the inventory item
+     */
     @Override
     public String toString() {
         return "InventoryItem{" +
@@ -83,5 +98,4 @@ public class InventoryItem implements Serializable {
                 ", supplier='" + supplier + '\'' +
                 '}';
     }
-
 }
