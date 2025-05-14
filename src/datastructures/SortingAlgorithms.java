@@ -1,6 +1,5 @@
 package src.datastructures;
 
-import src.InventoryItem;
 import java.util.Comparator;
 
 /**
