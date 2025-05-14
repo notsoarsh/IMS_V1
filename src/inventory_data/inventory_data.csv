@@ -1,0 +1,27 @@
+itemId,name,category,quantity,price,supplier
+1,Smartphone,Electronics,15,699.99,Apple
+2,Headphones,Electronics,20,149.99,Sony
+3,Tablet,Electronics,8,349.99,Samsung
+4,Smart Watch,Electronics,12,249.99,Fitbit
+5,Sofa,Furniture,5,799.99,IKEA
+6,Dining Table,Furniture,3,499.99,Ashley
+7,Bookshelf,Furniture,7,199.99,Wayfair
+8,Office Chair,Furniture,10,149.99,Staples
+9,Bed Frame,Furniture,4,299.99,Sleep Country
+10,Basketball,Sports,20,29.99,Nike
+11,Tennis Racket,Sports,8,89.99,Wilson
+12,Yoga Mat,Sports,20,19.99,Lululemon
+13,Soccer Ball,Sports,18,24.99,Adidas
+14,T-Shirt,Clothing,30,19.99,H&M
+15,Jeans,Clothing,25,49.99,Levi's
+16,Sweater,Clothing,15,39.99,Gap
+17,Jacket,Clothing,10,79.99,North Face
+18,Socks,Clothing,40,9.99,Hanes
+19,Blender,Household,8,69.99,Cuisinart
+20,Toaster,Household,12,39.99,Black & Decker
+21,Coffee Maker,Household,10,59.99,Keurig
+22,Vacuum Cleaner,Household,6,149.99,Dyson
+23,Microwave,Household,5,99.99,Samsung
+24,SG CRICKET BAT,Sports,1,100.0,SG
+25,Need For Speed MW,Video Games,1,25.0,EA SPORTS
+26,Chocolates,Food & Beverages,20,2.5,Cadbury
