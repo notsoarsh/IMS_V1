@@ -1,6 +1,8 @@
 package src;
 import java.io.*;
 import java.util.Scanner;
+import src.datastructures.BinarySearchTree;
+import java.util.Comparator;
 import src.datastructures.CustomArrayList;
 
 /**
@@ -9,8 +11,9 @@ import src.datastructures.CustomArrayList;
  */
 public class FileManager {
 
+    // Change the file path to use a single file
     private static final String CSV_DIRECTORY = "inventory_data/";
-    private static final String CSV_EXTENSION = ".csv";
+    private static final String CSV_FILE = "inventory_data.csv";
 
     /**
      * Ensures the directory for storing CSV files exists
@@ -22,56 +25,38 @@ public class FileManager {
         }
     }
 
-    /**
-     * Gets the file path for a specific category
-     * @param category The category name
-     * @return The full file path
-     */
-    private static String getFilePath(String category) {
-        return CSV_DIRECTORY + category + CSV_EXTENSION;
+    // Replace getFilePath method to return the single file path
+    private static String getFilePath() {
+        return CSV_DIRECTORY + CSV_FILE;
     }
 
-    /**
-     * Writes an item to its category CSV file
-     * @param item The item to write
-     */
+    // Update writeItemToFile method to use a single file
     public static void writeItemToFile(InventoryItem item) {
         ensureDirectoryExists();
-        String filePath = getFilePath(item.getCategory());
-        
-        // Check if file exists and if the item already exists (for updates)
-        boolean itemExists = false;
-        CustomArrayList<InventoryItem> existingItems = readItemsFromCategory(item.getCategory());
-        
-        for (int i = 0; i < existingItems.size(); i++) {
-            if (existingItems.get(i).getItemId() == item.getItemId()) {
-                existingItems.set(i, item); // Update existing item
-                itemExists = true;
-                break;
-            }
-        }
-        
-        if (!itemExists) {
-            existingItems.add(item); // Add new item
-        }
-        
+        String filePath = getFilePath();
+
+        // Read existing items
+        BinarySearchTree<InventoryItem> existingItems = readAllItems();
+
+        // Add or update item
+        existingItems.add(item);
+
         // Write all items back to file
         try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
             // Write header
             writer.println("itemId,name,category,quantity,price,supplier");
-            
-            // Write items
-            for (int i = 0; i < existingItems.size(); i++) {
-                InventoryItem currentItem = existingItems.get(i);
+
+            // Write items using in-order traversal
+            existingItems.inOrderTraversal(currentItem -> {
                 writer.println(
-                    currentItem.getItemId() + "," +
-                    escapeCSV(currentItem.getName()) + "," +
-                    escapeCSV(currentItem.getCategory()) + "," +
-                    currentItem.getQuantity() + "," +
-                    currentItem.getPrice() + "," +
-                    escapeCSV(currentItem.getSupplier())
+                        currentItem.getItemId() + "," +
+                                escapeCSV(currentItem.getName()) + "," +
+                                escapeCSV(currentItem.getCategory()) + "," +
+                                currentItem.getQuantity() + "," +
+                                currentItem.getPrice() + "," +
+                                escapeCSV(currentItem.getSupplier())
                 );
-            }
+            });
             System.out.println("Item saved successfully to " + filePath);
         } catch (IOException e) {
             System.out.println("Error saving data: " + e.getMessage());
@@ -79,49 +64,52 @@ public class FileManager {
         }
     }
 
-    /**
-     * Deletes an item from its category file
-     * @param category The category of the item
-     * @param itemId The ID of the item to delete
-     * @return true if deletion was successful
-     */
-    public static boolean deleteItemFromFile(String category, int itemId) {
+    // Update deleteItemFromFile method to use a single file and update IDs
+    public static boolean deleteItemFromFile(int itemId) {
         ensureDirectoryExists();
-        String filePath = getFilePath(category);
+        String filePath = getFilePath();
         File file = new File(filePath);
-        
+
         if (!file.exists()) {
             return false;
         }
-        
-        CustomArrayList<InventoryItem> items = readItemsFromCategory(category);
-        boolean deleted = false;
-        
-        for (int i = 0; i < items.size(); i++) {
-            if (items.get(i).getItemId() == itemId) {
-                items.remove(i);
-                deleted = true;
-                break;
-            }
-        }
-        
+
+        BinarySearchTree<InventoryItem> items = readAllItems();
+        InventoryItem key = new InventoryItem(itemId, "", "", 0, 0.0, "");
+        boolean deleted = items.remove(key);
+
         if (deleted) {
+            // Update IDs for items with higher IDs
+            CustomArrayList<InventoryItem> itemList = new CustomArrayList<>();
+            items.inOrderTraversal(itemList::add);
+        
+            // Clear the BST
+            items = new BinarySearchTree<>(Comparator.comparingInt(InventoryItem::getItemId));
+        
+            // Update IDs and add back to BST
+            for (int i = 0; i < itemList.size(); i++) {
+                InventoryItem item = itemList.get(i);
+                if (item.getItemId() > itemId) {
+                    item.setItemId(item.getItemId() - 1);
+                }
+                items.add(item);
+            }
+
             try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
                 // Write header
                 writer.println("itemId,name,category,quantity,price,supplier");
-                
+
                 // Write remaining items
-                for (int i = 0; i < items.size(); i++) {
-                    InventoryItem item = items.get(i);
+                items.inOrderTraversal(item -> {
                     writer.println(
-                        item.getItemId() + "," +
-                        escapeCSV(item.getName()) + "," +
-                        escapeCSV(item.getCategory()) + "," +
-                        item.getQuantity() + "," +
-                        item.getPrice() + "," +
-                        escapeCSV(item.getSupplier())
+                            item.getItemId() + "," +
+                                    escapeCSV(item.getName()) + "," +
+                                    escapeCSV(item.getCategory()) + "," +
+                                    item.getQuantity() + "," +
+                                    item.getPrice() + "," +
+                                    escapeCSV(item.getSupplier())
                     );
-                }
+                });
                 System.out.println("Item deleted successfully from " + filePath);
                 return true;
             } catch (IOException e) {
@@ -129,31 +117,29 @@ public class FileManager {
                 e.printStackTrace();
             }
         }
-        
+
         return false;
     }
 
-    /**
-     * Reads all items from a specific category file
-     * @param category The category to read
-     * @return ArrayList of items in that category
-     */
-    public static CustomArrayList<InventoryItem> readItemsFromCategory(String category) {
+    // Update readAllItems method to read from a single file
+    public static BinarySearchTree<InventoryItem> readAllItems() {
         ensureDirectoryExists();
-        String filePath = getFilePath(category);
-        CustomArrayList<InventoryItem> items = new CustomArrayList<>();
+        String filePath = getFilePath();
+        BinarySearchTree<InventoryItem> items = new BinarySearchTree<>(
+                Comparator.comparingInt(InventoryItem::getItemId)
+        );
         File file = new File(filePath);
-        
+
         if (!file.exists()) {
-            return items; // Return empty list if file doesn't exist
+            return items; // Return empty BST if file doesn't exist
         }
-        
+
         try (Scanner scanner = new Scanner(file)) {
             // Skip header
             if (scanner.hasNextLine()) {
                 scanner.nextLine();
             }
-            
+
             // Read items
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
@@ -168,37 +154,8 @@ public class FileManager {
             System.out.println("Error reading data: " + e.getMessage());
             e.printStackTrace();
         }
-        
-        return items;
-    }
 
-    /**
-     * Reads all items from all category files
-     * @return ArrayList of all inventory items
-     */
-    public static CustomArrayList<InventoryItem> readAllItems() {
-        ensureDirectoryExists();
-        CustomArrayList<InventoryItem> allItems = new CustomArrayList<>();
-        File directory = new File(CSV_DIRECTORY);
-        
-        if (!directory.exists() || !directory.isDirectory()) {
-            return allItems; // Return empty list if directory doesn't exist
-        }
-        
-        File[] files = directory.listFiles((dir, name) -> name.endsWith(CSV_EXTENSION));
-        
-        if (files != null) {
-            for (File file : files) {
-                String category = file.getName().replace(CSV_EXTENSION, "");
-                CustomArrayList<InventoryItem> categoryItems = readItemsFromCategory(category);
-                
-                for (int i = 0; i < categoryItems.size(); i++) {
-                    allItems.add(categoryItems.get(i));
-                }
-            }
-        }
-        
-        return allItems;
+        return items;
     }
 
     /**
@@ -207,15 +164,9 @@ public class FileManager {
      * @return The item if found, null otherwise
      */
     public static InventoryItem readItemById(int itemId) {
-        CustomArrayList<InventoryItem> allItems = readAllItems();
-        
-        for (int i = 0; i < allItems.size(); i++) {
-            if (allItems.get(i).getItemId() == itemId) {
-                return allItems.get(i);
-            }
-        }
-        
-        return null;
+        BinarySearchTree<InventoryItem> allItems = readAllItems();
+        InventoryItem key = new InventoryItem(itemId, "", "", 0, 0.0, "");
+        return allItems.find(key);
     }
 
     /**
@@ -226,7 +177,7 @@ public class FileManager {
     private static InventoryItem parseCSVLine(String line) {
         try {
             String[] parts = line.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)"); // Split by comma, respecting quotes
-            
+
             if (parts.length >= 6) {
                 int itemId = Integer.parseInt(parts[0].trim());
                 String name = unescapeCSV(parts[1].trim());
@@ -234,13 +185,13 @@ public class FileManager {
                 int quantity = Integer.parseInt(parts[3].trim());
                 double price = Double.parseDouble(parts[4].trim());
                 String supplier = unescapeCSV(parts[5].trim());
-                
+
                 return new InventoryItem(itemId, name, category, quantity, price, supplier);
             }
         } catch (NumberFormatException e) {
             System.out.println("Error parsing CSV line: " + e.getMessage());
         }
-        
+
         return null;
     }
 
@@ -253,12 +204,12 @@ public class FileManager {
         if (value == null) {
             return "";
         }
-        
+
         // If the value contains comma, newline or double quote, wrap in quotes and escape internal quotes
         if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
-        
+
         return value;
     }
 
@@ -271,12 +222,30 @@ public class FileManager {
         if (value == null) {
             return "";
         }
-        
+
         // If the value is wrapped in quotes, remove them and unescape internal quotes
         if (value.startsWith("\"") && value.endsWith("\"")) {
             return value.substring(1, value.length() - 1).replace("\"\"", "\"");
         }
-        
+
         return value;
+    }
+
+    // Add method to get the next available ID
+    public static int getNextAvailableId() {
+        BinarySearchTree<InventoryItem> items = readAllItems();
+        if (items.isEmpty()) {
+            return 1; // Start with 1 if no items exist
+        }
+    
+        // Find the highest ID
+        final int[] highestId = {0};
+        items.inOrderTraversal(item -> {
+            if (item.getItemId() > highestId[0]) {
+                highestId[0] = item.getItemId();
+            }
+        });
+    
+        return highestId[0] + 1;
     }
 }
